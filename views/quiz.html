@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <title></title>
+    <link rel="stylesheet" href="/css/quiz.css"/>
+    <script src="/js/jquery/jquery.js"></script>
+    <script src="/js/hb/handlebars.min.js"></script>
+    <script id="question-template" type="text/x-handlebars-template">
+        <div id="q{{id}}" class="quiz-item"  spaceCount="{{spaceCount}}" answer="{{answer}}" qid="{{id}}">
+            <p id="qid">{{id}}</p>
+            <p>{{{question}}}</p>
+            <p><button id="check{{id}}">检查</button> <span id="result{{id}}"></span></p>
+        </div>
+    </script>
+    <script>
+
+        var source   = $("#question-template").html();
+        var templateScript = Handlebars.compile(source);
+
+        var parseSpaceCount= function(qstr){
+            // qstr like ()adaf()
+            var c = 0;
+            var index = -1;
+            do{
+                index = qstr.indexOf("()",index+1);
+                if(index > -1)
+                    c++;
+            }while(index > -1);
+            return c;
+        }
+
+        /**
+         * from  ()TXT()  ->  <button>TXT<button>
+         */
+       var buildQuestionP = function(qid,qstr){
+            var qstr = qstr.replace(/\(\)/g,"<input type=\"text\" id=\"unknown\"></input>");
+            // add id now
+            var idx = qstr.indexOf("unknown");
+            var sc = 1;
+            while(idx > -1){
+                qstr = qstr.replace(/unknown/,"q"+qid+"_a"+sc);
+                sc++;
+                idx = qstr.indexOf("unknown");
+            }
+            return qstr;
+       }
+        var buildDiv = function(question){
+            console.log("buildDiv");
+            var scount = parseSpaceCount(question.question);
+            question.spaceCount = scount;
+
+            question.question = buildQuestionP(question.id,question.question);
+            console.log(question);
+            var context = question;
+            var html    = templateScript(context);
+
+            console.log(html);
+            return html;
+        }
+
+        var populateQuestions = function(questions){
+            window.questions = questions;
+            for(q in questions){
+                console.log('append: '+q);
+                var html = buildDiv(questions[q]);
+                $("#questions").append("<p>"+html+"</p>");
+
+                var check = function(id){
+                    return function(){
+                        checkAnswer(id);
+                    }
+                }(questions[q].id);
+
+                $("#check"+ questions[q].id).click(check)
+
+            }
+            $("#qid").hide();
+        }
+        $(document).ready(function(){
+            console.log('ready');
+
+
+            //query questions here
+            $.post('/getQuestions',function(data,status){
+                console.log("got questions: ");
+                console.log(data);
+                // populate data here
+                populateQuestions(JSON.parse(data));
+            });
+
+            $("#checkAll").click(function(){
+                var questions = window.questions;
+                for(q in questions){
+                    checkAnswer(questions[q].id);
+                }
+                calcScore(questions);
+            })
+        })
+        var calcScore = function(questions){
+            var totalScore = 0;
+            var total = 0;
+            for(q in questions){
+
+                var score = $("#result"+questions[q].id).attr('score');
+                score = parseInt(score);
+                if(score >= 0){
+                    totalScore += score;
+                    total++;
+                }
+            }
+            var r = "共做了"+total+"道题，总得分"+totalScore+"分";
+            $("#totalResult").text(r);
+            alert(r);
+        }
+        var checkAnswer=function(qid){
+            console.log('checking answer for '+qid);
+            var spaceCount = $("#q"+qid).attr("spaceCount");
+            console.log("spaceCount: "+spaceCount);
+            var answer = $("#q"+qid).attr("answer");
+
+            answer=answer.split(',');
+            console.log(answer);
+            var inputs =[];
+            for(var i=1; i<= spaceCount; i++){
+                var v =$("#q"+qid+"_a"+i).val();
+                inputs.push(v);
+            }
+            console.log(inputs);
+            for(var i=1; i<= spaceCount; i++){
+                if(inputs[i-1] != answer[i-1]){
+                    console.log("uncorrect "+i);
+                    $("#result"+qid).html("答案错误");
+                    $("#result"+qid).attr('score',0);
+                    return;
+                }
+            }
+            console.log('all correct');
+            $("#result"+qid).text("答案正确");
+            $("#result"+qid).attr('score',2);
+        }
+
+    </script>
+</head>
+<body>
+<div id="questions"></div>
+<p id="totalResult"></p></div>
+<button id="checkAll">交卷</button><div>
+</body>
+</html>

@@ -1,0 +1,11 @@
+body {
+    left: 30%;
+    position:absolute;
+    margin: 0;
+    padding: 0 0 1em 0;
+    font-size: 1em;
+    line-height: 1.5em;
+    color: #FF0000;
+    font-family: Arial;
+    background-color: #000000;
+}

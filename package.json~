@@ -1,0 +1,9 @@
+{
+  "name": "webexp",
+  "description": "app for user to register an experience account",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "express": "4.x"
+  }
+}
